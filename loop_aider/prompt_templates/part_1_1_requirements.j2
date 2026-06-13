@@ -1,0 +1,213 @@
+{# ============================================================================
+   Template:   part_1_1_requirements.j2
+   Phase:      part_1_1 — Requirements Clarification
+   Purpose:    Parse user intent, clarify scope, define success criteria.
+               This is the ENTRY POINT of the entire loop-aider pipeline.
+               Aider explores the existing codebase (if any), then produces a
+               crisp, unambiguous requirements document.
+   Variables:
+     {{ goal }}            — string, required.  User's original request.
+     {{ existing_code }}   — string, optional.  Codebase exploration summary
+                             from prior runs, or empty for greenfield.
+     {{ context_summary }} — string, optional.  Previous-cycle narrative (1k
+                             chars) from context-summary.md.
+     {{ cycle }}           — integer, required. Current loop cycle number.
+     {{ phase }}           — string, required.  Always "part_1_1" here.
+   Output artifact:  artifacts/01-requirements.md
+   Stop signal:      "需求澄清完成，无未消解歧义" (no unresolved ambiguity)
+   ============================================================================ #}
+
+{%- import 'macros.j2' as m -%}
+
+{{ m.common_header(goal, phase, cycle) }}
+
+---
+
+## 1. YOUR ROLE — Requirements Analyst
+
+You are acting as a **senior requirements analyst** in a structured development pipeline.
+Your sole job in this phase is to:
+
+* Parse the user's goal into clear, **unambiguous, testable requirements**.
+* Identify the **scope boundary** — what is IN scope and what is explicitly OUT.
+* Define **success criteria** — how will we know the goal is achieved?
+* Flag **ambiguities, unknowns, and assumptions** that need resolution.
+
+**You are NOT implementing anything.  You are NOT writing code.**
+Your output is a structured Markdown document that downstream phases will consume.
+
+---
+
+## 2. THE USER'S GOAL
+
+```
+{{ goal }}
+```
+
+---
+
+{% if existing_code %}
+## 3. EXISTING CODEBASE CONTEXT
+
+The following is a summary of the existing codebase (generated in a previous
+exploration step).  Use it to understand what already exists, what can be reused,
+and what constraints apply.
+
+```
+{{ existing_code }}
+```
+
+**Important:** If the user's goal can be satisfied by extending or modifying
+existing code, note that below.  If the goal requires a greenfield component
+alongside the existing code, clarify the integration points.
+{% else %}
+## 3. GREENFIELD PROJECT
+
+No existing codebase context was provided.  Treat this as a **greenfield**
+project.  You still need to define clear scope, but you may also suggest
+project scaffolding conventions (language, framework, directory layout) that
+align with the goal.
+{% endif %}
+
+---
+
+{% if context_summary %}
+## 4. PRIOR-CYCLE CONTEXT
+
+The following narrative summarizes what happened in the previous cycle(s).
+Use this to avoid re-litigating decisions that have already been made.
+
+```
+{{ context_summary }}
+```
+
+If any prior decisions are incompatible with the current goal statement,
+flag them explicitly as **P0: direction conflict**.
+{% endif %}
+
+---
+
+## 5. INSTRUCTIONS — What to Produce
+
+Please perform the following steps, in order, and capture your reasoning
+in the artifact file `artifacts/01-requirements.md`.
+
+### Step A — Goal Restatement
+Restate the user's goal in your own words.  This confirms you understood it
+correctly.  If the original goal is vague, add clarifying interpretations
+(and flag them as assumptions to be validated).
+
+### Step B — Scope Enumeration
+List every concrete deliverable, feature, or behavior that is **IN scope**.
+Then list what is **explicitly OUT of scope** (to prevent scope creep).
+
+### Step C — Success Criteria
+Define 3–7 concrete, testable success criteria.  Each criterion must be
+verifiable — "the CLI prints the current temperature for a given city"
+not "the app works well."
+
+### Step D — Constraints & Assumptions
+List all known constraints (language, platform, API dependencies, performance
+budgets, security requirements).  List all assumptions you are making and
+mark each with a confidence level: **[HIGH]** / **[MEDIUM]** / **[LOW]**.
+
+### Step E — Open Questions
+List every question that must be answered before implementation can begin.
+For each question, suggest a default answer (so the pipeline can proceed
+without blocking if the user is unavailable).
+
+### Step F — Risk Enumeration
+List potential risks (technical, schedule, dependency, integration) and
+a one-line mitigation for each.
+
+---
+
+## 6. OUTPUT FORMAT
+
+Write your entire output to the file: **`artifacts/01-requirements.md`**
+
+Use the following Markdown structure:
+
+```markdown
+# Requirements Document — {{ goal }}
+
+**Generated:** {{ m.now_iso() }}
+**Phase:** {{ phase }}
+**Cycle:** {{ cycle }}
+**Status:** DRAFT — awaiting downstream confirmation
+
+---
+
+## 1. Goal Restatement
+...
+
+## 2. Scope
+### 2.1 In Scope
+- ...
+### 2.2 Out of Scope
+- ...
+
+## 3. Success Criteria
+1. ...
+2. ...
+
+## 4. Constraints & Assumptions
+### 4.1 Constraints
+- ...
+### 4.2 Assumptions
+| # | Assumption | Confidence | Validation Needed? |
+|---|-----------|-----------|-------------------|
+| 1 | ...       | HIGH      | No  |
+| 2 | ...       | LOW       | Yes — ask user  |
+
+## 5. Open Questions
+| # | Question | Default Answer | Blocker? |
+|---|---------|---------------|---------|
+| 1 | ...     | ...           | No      |
+
+## 6. Risks
+| # | Risk | Severity | Mitigation |
+|---|------|---------|-----------|
+| 1 | ...  | HIGH    | ...       |
+```
+
+---
+
+## 7. PHASE CONTRACT
+
+{{ m.phase_contract(
+    expected_outputs=[
+        "01-requirements.md generated with all 6 sections filled",
+        "No unresolved HIGH-confidence ambiguities",
+        "All assumptions tagged with confidence level",
+        "Scope boundary is crisp (IN / OUT lists)"
+    ],
+    banned_behaviors=[
+        "NO implementation code — do not write any source files",
+        "NO file writes outside the artifacts/ directory",
+        "NO merge commits, NO PR creation",
+        "NO editing of existing source files (this is a READ-ONLY analysis phase)"
+    ]
+) }}
+
+---
+
+## 8. STOP SIGNAL
+
+{{ m.stop_signal(phase) }}
+
+When `artifacts/01-requirements.md` is complete and all six sections are
+filled, output the following signal on its own line at the end of your
+response so the loop-aider state machine can proceed:
+
+**<<<STOP_SIGNAL>>>** 需求澄清完成，无未消解歧义
+
+If there ARE unresolved ambiguities that block progress, instead output:
+
+**<<<STOP_SIGNAL>>>** 需求存在未消解歧义 — 需要用户澄清: <list of questions>
+
+---
+
+## 9. DANGEROUS OPERATIONS WARNING
+
+{{ m.dangerous_ops_warning() }}

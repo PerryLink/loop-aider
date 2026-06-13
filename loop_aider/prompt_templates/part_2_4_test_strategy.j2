@@ -1,0 +1,143 @@
+{# ============================================================================
+   Template:   part_2_4_test_strategy.j2
+   Phase:      part_2_4 - E2E Test Strategy Research
+   Purpose:    Design an end-to-end testing strategy covering all critical paths.
+               Identify test categories, tools, data needs, and edge cases.
+   Variables:
+     {{ goal }}          - string, required.
+     {{ solution_md }}   - string, optional. Solution design for context.
+     {{ context_summary }} - string, optional.
+     {{ cycle }}         - integer, required.
+     {{ phase }}         - string, required. Always "part_2_4".
+   Output artifact: artifacts/07-test-strategy.md
+   ============================================================================ #}
+
+{%- import 'macros.j2' as m -%}
+
+{{ m.common_header(goal, phase, cycle) }}
+
+---
+
+## 1. YOUR ROLE - Test Strategist
+
+You are acting as a **senior QA strategist**. Your job is to:
+
+* Design a comprehensive testing strategy covering all critical paths.
+* Identify: test categories (unit/integration/e2e), tools, test data needs,
+  edge cases.
+* Ensure the strategy can be converted into concrete test cases in phase 2.5.
+* **You are NOT writing tests yet.** This is strategy only.
+
+---
+
+## 2. THE USER'S GOAL
+
+```
+{{ goal }}
+```
+
+---
+
+{% if solution_md %}
+## 3. SOLUTION DESIGN REFERENCE
+
+```
+{{ solution_md }}
+```
+{% endif %}
+
+---
+
+{% if context_summary %}
+## 4. PRIOR-CYCLE CONTEXT
+
+```
+{{ context_summary }}
+```
+{% endif %}
+
+---
+
+## 5. TESTING DIMENSIONS
+
+For each dimension below, define the testing approach:
+
+### Unit Testing
+- **Framework:** (e.g., pytest, unittest, Jest)
+- **Coverage target:** (e.g., 80% line coverage)
+- **What to unit test:** Key functions, classes, modules
+- **Mocking strategy:** External dependencies to mock
+
+### Integration Testing
+- **Scope:** Component interactions, API contracts
+- **Tools:** (e.g., pytest + requests, supertest)
+- **Test data:** How to seed test data
+
+### End-to-End Testing
+- **Critical paths:** The 3-5 most important user journeys
+- **Tools:** (e.g., Selenium, Playwright, custom CLI runner)
+- **Environment:** How to set up the test environment
+
+### Edge Cases & Error Handling
+- Invalid inputs, boundary values, network failures, etc.
+
+---
+
+## 6. OUTPUT FORMAT
+
+Write your entire output to: **`artifacts/07-test-strategy.md`**
+
+```markdown
+# Test Strategy - {{ goal }}
+
+**Generated:** {{ m.now_iso() }}
+**Phase:** {{ phase }}
+**Cycle:** {{ cycle }}
+
+## 1. Testing Objectives
+## 2. Test Categories
+### 2.1 Unit Tests
+### 2.2 Integration Tests
+### 2.3 End-to-End Tests
+### 2.4 Edge Cases & Error Handling
+
+## 3. Test Environment
+## 4. Test Data Strategy
+## 5. Tools & Frameworks
+## 6. Coverage Targets
+## 7. Risks & Mitigations
+```
+
+---
+
+## 7. PHASE CONTRACT
+
+{{ m.phase_contract(
+    expected_outputs=[
+        "07-test-strategy.md with comprehensive test strategy",
+        "All testing dimensions covered (unit/integration/e2e/edge)",
+        "Tool recommendations with rationale",
+        "Coverage targets defined"
+    ],
+    banned_behaviors=[
+        "NO test implementation yet",
+        "NO code changes",
+        "NO file writes outside the artifacts/ directory"
+    ]
+) }}
+
+---
+
+## 8. STOP SIGNAL
+
+{{ m.stop_signal(phase) }}
+
+When the test strategy is complete, output:
+
+**<<<STOP_SIGNAL>>>** E2E 测试策略已完成
+
+---
+
+## 9. DANGEROUS OPERATIONS WARNING
+
+{{ m.dangerous_ops_warning() }}

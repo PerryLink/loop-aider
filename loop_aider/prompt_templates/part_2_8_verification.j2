@@ -1,0 +1,168 @@
+{# ============================================================================
+   Template:   part_2_8_verification.j2
+   Phase:      part_2_8 - Hard Verification Gate
+   Purpose:    Execute verification commands (pytest, lint, manual checks).
+               This is the FINAL gate before convergence/termination.
+               All P0/P1 issues must be resolved here.
+   Variables:
+     {{ goal }}            - string, required.
+     {{ issue_list_json }} - string, required. Content of 09-issue-list.json.
+     {{ verification_commands }} - string, optional. Shell commands to run.
+     {{ test_results_json }} - string, optional. Prior test results.
+     {{ context_summary }} - string, optional.
+     {{ cycle }}           - integer, required.
+     {{ phase }}           - string, required. Always "part_2_8".
+   Output artifact: artifacts/10-verification.md
+   ============================================================================ #}
+
+{%- import 'macros.j2' as m -%}
+
+{{ m.common_header(goal, phase, cycle) }}
+
+---
+
+## 1. YOUR ROLE - Verification Engineer
+
+You are acting as a **senior verification engineer**. This is the HARD
+verification gate -- the FINAL quality check before convergence/termination.
+
+Your job is to:
+* Execute verification commands and capture raw output.
+* Assess whether ALL P0/P1 issues are resolved.
+* Produce a definitive PASS/FAIL verdict.
+* If FAIL: document precisely what failed so routing can decide next steps.
+
+---
+
+## 2. THE USER'S GOAL
+
+```
+{{ goal }}
+```
+
+---
+
+## 3. ISSUE LIST TO VERIFY
+
+{% if issue_list_json %}
+```json
+{{ issue_list_json }}
+```
+{% else %}
+*(No issue list. Verify the solution end-to-end against the original goal.)*
+{% endif %}
+
+---
+
+{% if test_results_json %}
+## 4. PRIOR TEST RESULTS
+
+```json
+{{ test_results_json }}
+```
+{% endif %}
+
+---
+
+{% if context_summary %}
+## 5. PRIOR-CYCLE CONTEXT
+
+```
+{{ context_summary }}
+```
+{% endif %}
+
+---
+
+## 6. VERIFICATION COMMANDS
+
+Execute the following commands and capture their raw output:
+
+```bash
+{% if verification_commands %}
+{{ verification_commands }}
+{% else %}
+# Default verification commands
+python -m pytest tests/ -v --tb=short 2>&1
+python -m pytest tests/ --co -q 2>&1
+{% endif %}
+```
+
+---
+
+## 7. VERIFICATION CHECKLIST
+
+For each P0/P1 issue from the issue list, verify:
+- [ ] P0-XXX: [title] -- RESOLVED / UNRESOLVED
+- [ ] P1-XXX: [title] -- RESOLVED / UNRESOLVED
+
+For the overall solution:
+- [ ] All tests pass
+- [ ] No syntax errors
+- [ ] Solution matches original goal
+- [ ] No regressions detected
+
+---
+
+## 8. OUTPUT FORMAT
+
+Write your entire output to: **`artifacts/10-verification.md`**
+
+```markdown
+# Verification Report - {{ goal }}
+
+**Generated:** {{ m.now_iso() }}
+**Phase:** {{ phase }}
+**Cycle:** {{ cycle }}
+
+## 1. Verdict: PASS / FAIL
+
+## 2. Command Output
+### pytest
+```
+<raw output>
+```
+
+## 3. Issue Verification
+| Issue ID | Severity | Status | Notes |
+|----------|----------|--------|-------|
+| P0-001 | P0 | RESOLVED | ... |
+
+## 4. Overall Assessment
+(Detailed judgment on whether the solution is complete)
+```
+
+---
+
+## 9. PHASE CONTRACT
+
+{{ m.phase_contract(
+    expected_outputs=[
+        "10-verification.md with definitive PASS/FAIL verdict",
+        "Raw command output captured",
+        "All P0/P1 issues verified as RESOLVED or UNRESOLVED",
+        "Overall assessment with evidence"
+    ],
+    banned_behaviors=[
+        "NO new implementation -- verify only",
+        "NO scope changes",
+        "NO modification of source code",
+        "NO new artifacts beyond 10-verification.md"
+    ]
+) }}
+
+---
+
+## 10. STOP SIGNAL
+
+{{ m.stop_signal(phase) }}
+
+When verification is complete, output:
+
+**<<<STOP_SIGNAL>>>** 验证完成 -- 结果: PASS (或 FAIL: <具体原因>)
+
+---
+
+## 11. DANGEROUS OPERATIONS WARNING
+
+{{ m.dangerous_ops_warning() }}

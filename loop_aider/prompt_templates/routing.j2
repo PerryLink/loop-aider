@@ -1,0 +1,284 @@
+{# ============================================================================
+   Template:   routing.j2
+   Phase:      routing — Route Decision Gate
+   Purpose:    Evaluate all post-phase audit results, issue severity, and
+               convergence state to decide the NEXT phase target.
+               This template is NOT sent to Aider — it generates a structured
+               routing analysis document consumed by routing.py internally.
+               However, in SPECIAL cases where routing is ambiguous (e.g.,
+               P1 that could be design-level OR implementation-level), this
+               template can be rendered into an Aider prompt to ask Aider to
+               help classify the issue severity and recommend a route target.
+   Variables:
+     {{ goal }}                  — string,  required.  User's original request.
+     {{ current_phase }}         — string,  required.  The phase we are routing FROM.
+     {{ cycle }}                 — integer, required.  Current cycle number.
+     {{ convergence_counter }}   — integer, required.  Current convergence count.
+     {{ convergence_rounds }}    — integer, required.  Threshold for termination.
+     {{ max_cycles }}            — integer, required.  Hard stop limit.
+     {{ active_issues }}         — dict,    required.  {"p0": [...], "p1": [...], "p2": [...]}.
+     {{ resolved_issues }}       — dict,    required.  {"p0": N, "p1": N, "p2": N}.
+     {{ tasks }}                 — dict,    required.  {"total": N, "by_status": {...}}.
+     {{ route_repeat_max }}      — integer, required.  Threshold for repeat-detection pause.
+     {{ routing_history }}       — list,    required.  Prior routing decisions.
+     {{ routing_repeat_tracker }}— dict,    required.  Repeat-count tracker.
+     {{ phase_contracts }}       — dict,    required.  Contracts for all phases.
+     {{ all_audit_results }}     — list,    required.  Post-call audit results from the
+                                                      most recent phase execution.
+     {{ verification_pass_count }}— integer, required.  Count of consecutive verification passes.
+     {{ mode }}                  — string,  required.  Trust level (safe/auto/unsafe/interactive).
+   Output:  routing decision (written to state.json by routing.py, not Aider)
+   ============================================================================ #}
+
+{%- import 'macros.j2' as m -%}
+
+{{ m.common_header(goal, "routing", cycle) }}
+
+---
+
+## 1. ROUTING CONTEXT
+
+This is the **routing decision gate** — the point where loop-aider decides
+the next phase after a completed Aider call.
+
+### Current State
+| Field | Value |
+|-------|-------|
+| **Routing FROM phase** | `{{ current_phase }}` |
+| **Cycle** | {{ cycle }} / {{ max_cycles }} (max) |
+| **Convergence counter** | {{ convergence_counter }} / {{ convergence_rounds }} (threshold) |
+| **Verification pass count** | {{ verification_pass_count }} |
+| **Trust mode** | `{{ mode }}` |
+
+---
+
+## 2. ISSUE INVENTORY
+
+### Active Issues (need resolution)
+
+{% if active_issues.p0 %}
+**P0 — Directional / Architectural ({{ active_issues.p0 | length }})**
+{% for issue in active_issues.p0 %}
+- [P0-{{ loop.index }}] {{ issue.title }}
+  - Source: {{ issue.source }}
+  - Description: {{ issue.description }}
+{% if issue.affected_files %}  - Affected files: {{ issue.affected_files | join(', ') }}{% endif %}
+{% if issue.fix_strategy %}  - Fix strategy: {{ issue.fix_strategy }}{% endif %}
+{% endfor %}
+{% else %}
+**P0:** None — no directional/architectural issues.
+{% endif %}
+
+{% if active_issues.p1 %}
+**P1 — Core Defects ({{ active_issues.p1 | length }})**
+{% for issue in active_issues.p1 %}
+- [P1-{{ loop.index }}] {{ issue.title }}
+  - Source: {{ issue.source }}
+  - Description: {{ issue.description }}
+{% if issue.affected_files %}  - Affected files: {{ issue.affected_files | join(', ') }}{% endif %}
+{% if issue.fix_strategy %}  - Fix strategy: {{ issue.fix_strategy }}{% endif %}
+  - **Design-level?** {{ 'YES' if issue.is_design_level else 'NO' }}
+{% endfor %}
+{% else %}
+**P1:** None — no core defects.
+{% endif %}
+
+{% if active_issues.p2 %}
+**P2 — Quality / Polish ({{ active_issues.p2 | length }})**
+{% for issue in active_issues.p2 %}
+- [P2-{{ loop.index }}] {{ issue.title }}
+  - Source: {{ issue.source }}
+{% if issue.affected_files %}  - Affected files: {{ issue.affected_files | join(', ') }}{% endif %}
+{% endfor %}
+{% else %}
+**P2:** None — no quality/polish issues.
+{% endif %}
+
+### Resolved Issues (historical)
+| Severity | Count |
+|----------|-------|
+| P0 | {{ resolved_issues.p0 }} |
+| P1 | {{ resolved_issues.p1 }} |
+| P2 | {{ resolved_issues.p2 }} |
+
+### Task Progress
+- **Total tasks:** {{ tasks.total }}
+- **Completed:** {{ tasks.by_status.completed }}
+- **In progress:** {{ tasks.by_status.in_progress }}
+- **Pending:** {{ tasks.by_status.pending }}
+- **Failed:** {{ tasks.by_status.failed }}
+- **Skipped:** {{ tasks.by_status.skipped }}
+
+---
+
+## 3. AUDIT RESULTS FROM LAST PHASE
+
+{% if all_audit_results %}
+{% for audit in all_audit_results %}
+### Audit #{{ loop.index }} — Phase: {{ audit.phase }}
+- **Passed:** {{ 'YES' if audit.passed else 'NO' }}
+{% if audit.issues %}
+- **Issues found:**
+{% for issue in audit.issues %}
+  - [{{ issue.severity }}] {{ issue.title }} (source: {{ issue.source }})
+{% endfor %}
+{% endif %}
+{% if audit.warnings %}
+- **Warnings:**
+{% for w in audit.warnings %}
+  - {{ w }}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% else %}
+*(No audit results — this is the first routing evaluation or no audits were generated.)*
+{% endif %}
+
+---
+
+## 4. ROUTING DECISION TREE
+
+The routing algorithm (`routing.py`) evaluates conditions in this exact order.
+The FIRST matching condition wins.
+
+### Priority 1 — P0 Detected
+{% raw %}
+**Condition:** `any(active_issues.p0)`
+**Target:** `part_1_1` (back to requirements)
+**Action:** Reset `part1_round = 0`, `cycle += 1`
+**Rationale:** Directional error — the foundation is wrong.  Must re-design.
+
+### Priority 2 — Design-level P1 Detected
+**Condition:** `any(active_issues.p1) AND issue.is_design_level == true`
+**Target:** `part_1_3` (back to solution design)
+**Action:** `cycle += 1`
+**Rationale:** Core defect caused by design flaw.  Re-design the affected
+component, not just patch code.
+
+### Priority 3 — Implementation-level P1 Detected
+**Condition:** `any(active_issues.p1) AND issue.is_design_level == false`
+**Target:** `part_2_2` with `repair_context` populated
+**Action:** `cycle += 1`
+**Rationale:** Core defect in implementation.  Targeted repair, not full redo.
+
+### Priority 4 — P2 Detected
+**Condition:** `any(active_issues.p2)`
+**Target:** `part_2_2` with `repair_context` populated
+**Action:** `cycle += 1`
+**Rationale:** Quality issues — patch in implementation phase.
+
+### Priority 5 — All Clear + Convergence Met
+**Condition:** `NO active issues AND convergence_counter >= convergence_rounds`
+**Target:** `complete` — termination
+**Action:** Set `termination.status = "complete"`
+**Rationale:** Problem list is empty and we have sustained convergence.
+
+### Priority 6 — All Clear + Convergence Not Met + Verification Needed
+**Condition:** `NO active issues AND convergence_counter < convergence_rounds AND verification_pass_count < convergence_rounds`
+**Target:** `part_2_8` (re-verification)
+**Action:** `verification_pass_count += 1`
+**Rationale:** Looks good but need sustained stability proof.
+
+### Priority 7 — All Clear + Convergence Not Met + Equivalent Convergence
+**Condition:** `NO active issues AND convergence_counter < convergence_rounds AND verification_pass_count >= convergence_rounds`
+**Target:** `complete` — equivalent convergence
+**Action:** Set `termination.status = "complete"`
+**Rationale:** Continuous re-verification with zero new findings equals convergence.
+
+### Priority 8 — Cycle Limit Reached
+**Condition:** `cycle >= max_cycles`
+**Target:** `complete` — forced termination
+**Action:** Set `termination.status = "complete"`, `exit_reason = "max_cycles"`
+**Rationale:** Hard stop to prevent infinite loops.
+
+### Priority 9 — Route Repeat Detected
+**Condition:** `routing_repeat_tracker[route_key] >= route_repeat_max`
+**Target:** `paused` — request user intervention
+**Action:** Set `phase = "paused"`, `termination.status = "paused"`
+**Rationale:** The same route loop has repeated too many times; human judgment needed.
+
+### Priority 10 — No Issues, Ongoing Work
+**Condition:** `NO active issues AND tasks.by_status.in_progress > 0`
+**Target:** `part_2_2` (continue implementation)
+**Action:** No cycle increment
+**Rationale:** Work is still in progress but no quality issues yet.
+{% endraw %}
+
+---
+
+## 5. ROUTING HISTORY
+
+{% if routing_history %}
+| # | Cycle | From | To | Reason |
+|---|-------|------|----|--------|
+{% for entry in routing_history %}
+| {{ loop.index }} | {{ entry.cycle }} | `{{ entry.from }}` | `{{ entry.to }}` | {{ entry.reason }} |
+{% endfor %}
+{% else %}
+*(No routing history — this is the first routing evaluation.)*
+{% endif %}
+
+---
+
+## 6. REPEAT DETECTION
+
+{% if routing_repeat_tracker %}
+| Route Key | Count | Limit | Status |
+|-----------|-------|-------|--------|
+{% for key, count in routing_repeat_tracker.items() %}
+| `{{ key }}` | {{ count }} | {{ route_repeat_max }} | {{ '⚠️ THRESHOLD' if count >= route_repeat_max else 'OK' }} |
+{% endfor %}
+{% else %}
+*(No repeat tracking data.)*
+{% endif %}
+
+---
+
+## 7. ROUTING DECISION (to be filled by routing.py)
+
+After evaluating the decision tree above against the current state, the
+routing engine (`routing.py`) will produce:
+
+```
+### ROUTING DECISION
+Matched priority: <N>
+Target phase: <phase_name>
+Cycle increment: <yes/no> (new cycle = <N>)
+Action: <one-line description>
+Reason: <rationale extracted from the matching rule>
+```
+
+{% if mode == 'safe' or mode == 'interactive' %}
+---
+
+## 8. ⚠️ SAFE / INTERACTIVE MODE — Decision Gate
+
+Since the trust mode is `{{ mode }}`, this routing decision **requires user
+confirmation** before the pipeline proceeds.  The routing engine will set
+`pending_confirmation` in state.json and pause.
+
+**If you are reading this via an Aider session:**
+Do NOT proceed to the next phase.  Wait for the routing decision to be
+confirmed by the user or the loop-aider state machine.
+
+{% endif %}
+
+---
+
+## 9. PHASE CONTRACT FOR ROUTING
+
+{{ m.phase_contract(
+    expected_outputs=[
+        "A definitive next-phase target (single phase name)",
+        "A clear rationale for the routing decision",
+        "Updated cycle count (incremented or not)",
+        "If applicable: repair_context populated with specific issues to fix",
+        "If applicable: pending_confirmation record for safe/interactive mode"
+    ],
+    banned_behaviors=[
+        "NO code modification — routing is a READ-ONLY decision phase",
+        "NO file writes outside state.json (routing updates state, not artifacts)",
+        "NO ambiguous routing — must pick exactly ONE target phase",
+        "NO infinite routing loops — repeat detection must kick in at threshold"
+    ]
+) }}

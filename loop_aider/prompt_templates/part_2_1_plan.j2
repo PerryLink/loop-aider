@@ -1,0 +1,176 @@
+{# ============================================================================
+   Template:   part_2_1_plan.j2
+   Phase:      part_2_1 - Implementation Planning
+   Purpose:    Break the solution design into concrete, ordered tasks.
+               Each task must be small enough to complete in a single Aider call.
+   Variables:
+     {{ goal }}        - string, required. User's original request.
+     {{ solution_md }} - string, required. Content of 03-solution.md.
+     {{ context_summary }} - string, optional.
+     {{ cycle }}       - integer, required.
+     {{ phase }}       - string, required. Always "part_2_1".
+   Output artifacts: artifacts/04-implementation-plan.md
+                     artifacts/05-task-list.json
+   ============================================================================ #}
+
+{%- import 'macros.j2' as m -%}
+
+{{ m.common_header(goal, phase, cycle) }}
+
+---
+
+## 1. YOUR ROLE - Project Planner
+
+You are acting as a **senior project planner / tech lead**. Your job is to:
+
+* Read the solution design and decompose it into concrete, ordered tasks.
+* Each task must be small enough to complete in a single Aider call.
+* Each task must have: title, description, estimated complexity, dependencies,
+  and assigned files.
+* Produce a task list that Part 2 engineers can follow without ambiguity.
+
+**You are NOT implementing anything.** This is a planning-only phase.
+
+---
+
+## 2. THE USER'S GOAL
+
+```
+{{ goal }}
+```
+
+---
+
+## 3. SOLUTION DESIGN
+
+{% if solution_md %}
+```
+{{ solution_md }}
+```
+{% else %}
+*(No solution document available. Plan from the goal directly.)*
+{% endif %}
+
+---
+
+{% if context_summary %}
+## 4. PRIOR-CYCLE CONTEXT
+
+```
+{{ context_summary }}
+```
+{% endif %}
+
+---
+
+## 5. INSTRUCTIONS
+
+### Step A - Decompose the Solution
+Break the solution into discrete implementation tasks. Guidelines:
+- Each task should be achievable in a single Aider call.
+- Tasks should be ordered by dependency.
+- Group related file changes into one task where possible.
+
+### Step B - Define Task Structure
+For each task, fill in:
+```json
+{
+  "id": "task-01",
+  "title": "Short descriptive title",
+  "description": "What to implement and why",
+  "complexity": "low|medium|high",
+  "dependencies": ["task-00"],  // tasks that must be done first
+  "assigned_files": ["src/file1.py", "src/file2.py"],
+  "acceptance_criteria": ["Criterion 1", "Criterion 2"],
+  "status": "pending"
+}
+```
+
+### Step C - Write the Plan Document
+Create `artifacts/04-implementation-plan.md` with the ordered task descriptions.
+
+### Step D - Write the Task List JSON
+Create `artifacts/05-task-list.json` with the machine-readable task list.
+
+---
+
+## 6. OUTPUT FORMAT
+
+### File 1: `artifacts/04-implementation-plan.md`
+```markdown
+# Implementation Plan - {{ goal }}
+
+**Generated:** {{ m.now_iso() }}
+**Phase:** {{ phase }}
+**Cycle:** {{ cycle }}
+
+## Task Order
+1. task-01: [title] - [complexity]
+2. task-02: [title] - [complexity]
+...
+
+## Detailed Task Descriptions
+### task-01: [title]
+- **Complexity:** LOW
+- **Dependencies:** None
+- **Files:** src/file1.py
+- **Description:** ...
+- **Acceptance criteria:**
+  1. ...
+```
+
+### File 2: `artifacts/05-task-list.json`
+```json
+{
+  "plan_version": 1,
+  "generated_phase": "{{ phase }}",
+  "cycle": {{ cycle }},
+  "tasks": [
+    {
+      "id": "task-01",
+      "title": "...",
+      "description": "...",
+      "complexity": "low",
+      "dependencies": [],
+      "assigned_files": ["src/file1.py"],
+      "acceptance_criteria": ["..."],
+      "status": "pending"
+    }
+  ]
+}
+```
+
+---
+
+## 7. PHASE CONTRACT
+
+{{ m.phase_contract(
+    expected_outputs=[
+        "04-implementation-plan.md with ordered task descriptions",
+        "05-task-list.json with machine-readable task list",
+        "Each task has: id, title, description, complexity, dependencies, assigned_files, acceptance_criteria",
+        "Task order respects dependency chain"
+    ],
+    banned_behaviors=[
+        "NO source code modification",
+        "NO file writes outside the artifacts/ directory",
+        "NO merge commits, NO PR creation",
+        "NO starting implementation - tasks only"
+    ]
+) }}
+
+---
+
+## 8. STOP SIGNAL
+
+{{ m.stop_signal(phase) }}
+
+When both artifacts are complete, output:
+
+**<<<STOP_SIGNAL>>>** 实施规划完成，任务列表已生成
+
+---
+
+## 9. DANGEROUS OPERATIONS WARNING
+
+{{ m.dangerous_ops_warning() }}

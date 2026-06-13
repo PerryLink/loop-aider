@@ -1,0 +1,134 @@
+{# ============================================================================
+   Template:   part_2_5_test_plan.j2
+   Phase:      part_2_5 - Test Planning
+   Purpose:    Convert the test strategy into concrete, executable test cases
+               with expected outcomes.  Each test case should be specific
+               enough to be implemented in phase 2.6.
+   Variables:
+     {{ goal }}          - string, required.
+     {{ test_strategy }} - string, required. Content of 07-test-strategy.md.
+     {{ context_summary }} - string, optional.
+     {{ cycle }}         - integer, required.
+     {{ phase }}         - string, required. Always "part_2_5".
+   Output artifacts: artifacts/07-test-plan.md, artifacts/08-test-plan.json
+   ============================================================================ #}
+
+{%- import 'macros.j2' as m -%}
+
+{{ m.common_header(goal, phase, cycle) }}
+
+---
+
+## 1. YOUR ROLE - Test Planner
+
+You are acting as a **senior test planner**. Your job is to:
+
+* Convert the test strategy into concrete, numbered test cases.
+* Each test case must have: name, description, test type, expected result,
+  priority, and target file/module.
+* The test plan must be detailed enough that phase 2.6 can implement it
+  without ambiguity.
+* **You are NOT implementing tests. You are not running anything.**
+
+---
+
+## 2. THE USER'S GOAL
+
+```
+{{ goal }}
+```
+
+---
+
+## 3. TEST STRATEGY
+
+{% if test_strategy %}
+```
+{{ test_strategy }}
+```
+{% else %}
+*(No test strategy document available. Plan tests from the goal and solution.)*
+{% endif %}
+
+---
+
+{% if context_summary %}
+## 4. PRIOR-CYCLE CONTEXT
+
+```
+{{ context_summary }}
+```
+{% endif %}
+
+---
+
+## 5. TEST CASE SPECIFICATION
+
+For each test case, define:
+
+```json
+{
+  "id": "tc-01",
+  "name": "Short descriptive name",
+  "description": "What this test verifies",
+  "type": "unit|integration|e2e",
+  "target": "src/module.py::function_name",
+  "inputs": "Description of test inputs",
+  "expected_result": "What should happen",
+  "priority": "critical|high|medium|low",
+  "status": "pending"
+}
+```
+
+---
+
+## 6. OUTPUT FORMAT
+
+### File 1: `artifacts/07-test-plan.md`
+Human-readable test plan document.
+
+### File 2: `artifacts/08-test-plan.json`
+Machine-readable test plan JSON:
+```json
+{
+  "test_plan_version": 1,
+  "generated_phase": "{{ phase }}",
+  "cycle": {{ cycle }},
+  "total_tests": N,
+  "by_type": {"unit": N, "integration": N, "e2e": N},
+  "test_cases": [...]
+}
+```
+
+---
+
+## 7. PHASE CONTRACT
+
+{{ m.phase_contract(
+    expected_outputs=[
+        "07-test-plan.md with human-readable test descriptions",
+        "08-test-plan.json with machine-readable test cases",
+        "Each test case has: id, name, description, type, target, inputs, expected_result, priority"
+    ],
+    banned_behaviors=[
+        "NO test implementation yet",
+        "NO code changes outside artifacts/",
+        "NO running tests - planning only"
+    ]
+) }}
+
+---
+
+## 8. STOP SIGNAL
+
+{{ m.stop_signal(phase) }}
+
+When the test plan is complete, output:
+
+**<<<STOP_SIGNAL>>>** 测试规划完成 -- N 个 test case 已定义
+
+---
+
+## 9. DANGEROUS OPERATIONS WARNING
+
+{{ m.dangerous_ops_warning() }}

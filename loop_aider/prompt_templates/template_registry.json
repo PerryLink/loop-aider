@@ -1,0 +1,246 @@
+{
+  "schema_version": 1,
+  "description": "Template variable registry for loop-aider Jinja2 templates. Defines the type, source, and required status of every variable referenced in the 11 phase templates.",
+  "variables": {
+    "goal": {
+      "type": "string",
+      "source": "state.json.config.user_request",
+      "required": true,
+      "description": "User's original natural language goal/requirement"
+    },
+    "phase": {
+      "type": "string",
+      "source": "state.json.progress.phase",
+      "required": true,
+      "description": "Current phase name (e.g. part_1_1, part_2_2)"
+    },
+    "cycle": {
+      "type": "integer",
+      "source": "state.json.progress.cycle",
+      "required": true,
+      "description": "Current loop cycle number"
+    },
+    "existing_code": {
+      "type": "string",
+      "source": "codebase_exploration / prior run context",
+      "required": false,
+      "description": "Summary of existing codebase from prior exploration"
+    },
+    "context_summary": {
+      "type": "string",
+      "source": "artifacts/context-summary.md or state.context_snapshot.narrative_1k",
+      "required": false,
+      "description": "Previous round's condensed context narrative (approx 1k chars)"
+    },
+    "requirements_md": {
+      "type": "string",
+      "source": "artifacts/01-requirements.md",
+      "required": false,
+      "description": "Requirements clarification document from part_1_1"
+    },
+    "direction_md": {
+      "type": "string",
+      "source": "artifacts/02-direction.md",
+      "required": false,
+      "description": "Direction research document from part_1_2"
+    },
+    "solution_md": {
+      "type": "string",
+      "source": "artifacts/03-solution.md",
+      "required": false,
+      "description": "Solution design document from part_1_3"
+    },
+    "task_list_json": {
+      "type": "json_string",
+      "source": "artifacts/05-task-list.json",
+      "required": false,
+      "description": "Machine-readable task list JSON from part_2_1"
+    },
+    "implementation_diff": {
+      "type": "string",
+      "source": "artifacts/05b-implementation-diff.patch",
+      "required": false,
+      "description": "Accumulated unified diff from implementation phases"
+    },
+    "repair_context": {
+      "type": "object",
+      "source": "state.json.progress.repair_context",
+      "required": false,
+      "description": "Repair context object (non-null when in repair mode). Fields: issues, source_phase, reason, do_not_touch"
+    },
+    "test_strategy": {
+      "type": "string",
+      "source": "artifacts/07-test-strategy.md",
+      "required": false,
+      "description": "E2E test strategy document from part_2_4"
+    },
+    "test_plan_md": {
+      "type": "string",
+      "source": "artifacts/07-test-plan.md",
+      "required": false,
+      "description": "Test plan document from part_2_5"
+    },
+    "test_plan_json": {
+      "type": "json_string",
+      "source": "artifacts/08-test-plan.json",
+      "required": false,
+      "description": "Machine-readable test plan JSON from part_2_5"
+    },
+    "test_results_json": {
+      "type": "json_string",
+      "source": "artifacts/08-test-results.json",
+      "required": false,
+      "description": "Test execution results JSON from part_2_6"
+    },
+    "code_review_md": {
+      "type": "string",
+      "source": "artifacts/06-code-review.md",
+      "required": false,
+      "description": "Code review report from part_2_3"
+    },
+    "issue_list_json": {
+      "type": "json_string",
+      "source": "artifacts/09-issue-list.json",
+      "required": false,
+      "description": "Structured issue list from part_2_7 audit"
+    },
+    "verification_commands": {
+      "type": "string",
+      "source": "state.json or config",
+      "required": false,
+      "description": "Shell commands to execute during part_2_8 verification"
+    },
+    "diff_accumulated": {
+      "type": "string",
+      "source": "artifacts/05b-implementation-diff.patch (cumulative)",
+      "required": false,
+      "description": "Accumulated diff from all prior implementation rounds"
+    },
+    "model": {
+      "type": "string",
+      "source": "cli_args --model or aider default",
+      "required": false,
+      "description": "Aider model name to use"
+    },
+    "mode": {
+      "type": "string",
+      "source": "state.json.config.mode",
+      "required": false,
+      "description": "Trust mode: safe | auto | unsafe | interactive"
+    },
+    "current_phase": {
+      "type": "string",
+      "source": "state.json.progress.phase",
+      "required": false,
+      "description": "The phase from which routing is being performed (routing template only)"
+    },
+    "convergence_counter": {
+      "type": "integer",
+      "source": "state.json.progress.convergence_counter",
+      "required": false,
+      "description": "Current convergence counter value (routing template only)"
+    },
+    "convergence_rounds": {
+      "type": "integer",
+      "source": "state.json.config.convergence_rounds",
+      "required": false,
+      "description": "Convergence rounds threshold for termination (routing template only)"
+    },
+    "max_cycles": {
+      "type": "integer",
+      "source": "state.json.config.max_cycles",
+      "required": false,
+      "description": "Maximum cycle limit (routing template only)"
+    },
+    "active_issues": {
+      "type": "object",
+      "source": "state.json.issues.active",
+      "required": false,
+      "description": "Active issues dict: {p0: [...], p1: [...], p2: [...]} (routing template only)"
+    },
+    "resolved_issues": {
+      "type": "object",
+      "source": "state.json.issues.resolved",
+      "required": false,
+      "description": "Resolved issues dict: {p0: N, p1: N, p2: N} (routing template only)"
+    },
+    "tasks": {
+      "type": "object",
+      "source": "state.json.tasks",
+      "required": false,
+      "description": "Task stats dict: {total, by_status: {...}} (routing template only)"
+    },
+    "route_repeat_max": {
+      "type": "integer",
+      "source": "state.json.config.route_repeat_max",
+      "required": false,
+      "description": "Route repeat threshold (routing template only)"
+    },
+    "routing_history": {
+      "type": "array",
+      "source": "state.json.routing_history",
+      "required": false,
+      "description": "Previous routing decisions list (routing template only)"
+    },
+    "routing_repeat_tracker": {
+      "type": "object",
+      "source": "state.json.routing_repeat_tracker",
+      "required": false,
+      "description": "Route key -> count mapping (routing template only)"
+    },
+    "phase_contracts": {
+      "type": "object",
+      "source": "state.json.phase_contracts",
+      "required": false,
+      "description": "Phase contracts for all phases (routing template only)"
+    },
+    "all_audit_results": {
+      "type": "array",
+      "source": "Post-call audit results",
+      "required": false,
+      "description": "All audit results from the most recent phase (routing template only)"
+    },
+    "verification_pass_count": {
+      "type": "integer",
+      "source": "state.json.progress.verification_pass_count",
+      "required": false,
+      "description": "Count of consecutive verification passes (routing template only)"
+    }
+  },
+  "macros": {
+    "common_header": "macros.j2::common_header",
+    "stop_signal": "macros.j2::stop_signal",
+    "phase_contract": "macros.j2::phase_contract",
+    "artifact_reference": "macros.j2::artifact_reference",
+    "dangerous_ops_warning": "macros.j2::dangerous_ops_warning",
+    "now_iso": "macros.j2::now_iso"
+  },
+  "phase_template_map": {
+    "part_1_1": "part_1_1_requirements.j2",
+    "part_1_2": "part_1_2_direction.j2",
+    "part_1_3": "part_1_3_solution.j2",
+    "part_2_1": "part_2_1_plan.j2",
+    "part_2_2": "part_2_2_implementation.j2",
+    "part_2_3": "part_2_3_code_review.j2",
+    "part_2_4": "part_2_4_test_strategy.j2",
+    "part_2_5": "part_2_5_test_plan.j2",
+    "part_2_6": "part_2_6_test_execution.j2",
+    "part_2_7": "part_2_7_audit.j2",
+    "part_2_8": "part_2_8_verification.j2",
+    "routing": "routing.j2"
+  },
+  "required_vars_per_template": {
+    "part_1_1_requirements.j2": ["goal", "phase", "cycle"],
+    "part_1_2_direction.j2": ["goal", "phase", "cycle"],
+    "part_1_3_solution.j2": ["goal", "phase", "cycle"],
+    "part_2_1_plan.j2": ["goal", "phase", "cycle"],
+    "part_2_2_implementation.j2": ["goal", "phase", "cycle"],
+    "part_2_3_code_review.j2": ["goal", "phase", "cycle"],
+    "part_2_4_test_strategy.j2": ["goal", "phase", "cycle"],
+    "part_2_5_test_plan.j2": ["goal", "phase", "cycle"],
+    "part_2_6_test_execution.j2": ["goal", "phase", "cycle"],
+    "part_2_7_audit.j2": ["goal", "phase", "cycle"],
+    "part_2_8_verification.j2": ["goal", "phase", "cycle"],
+    "routing.j2": ["goal", "current_phase", "cycle"]
+  }
+}

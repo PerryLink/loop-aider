@@ -1,0 +1,155 @@
+{# ============================================================================
+   macros.j2 — Shared Jinja2 Macros for All Phase Templates
+
+   These macros provide consistent headers, contracts, stop signals, and
+   safety warnings across all 11 phase templates + the routing template.
+
+   Import in any .j2 file with:
+       {%- import 'macros.j2' as m -%}
+
+   Usage:
+       {{ m.common_header(goal, phase, cycle) }}
+       {{ m.stop_signal(phase) }}
+       {{ m.phase_contract(expected_outputs, banned_behaviors) }}
+       {{ m.artifact_reference(artifact_path, artifact_name) }}
+       {{ m.dangerous_ops_warning() }}
+   ============================================================================ #}
+
+
+{# --------------------------------------------------------------------------
+   common_header — Standard header block for every phase prompt.
+
+   Parameters:
+     goal:  User's original goal string.
+     phase: Current phase name (e.g. "part_2_2").
+     cycle: Current loop cycle (integer).
+
+   Output: A markdown info block with goal, phase, cycle, and timestamp.
+   -------------------------------------------------------------------------- #}
+{% macro common_header(goal, phase, cycle) -%}
+## Phase: {{ phase }} | Cycle: {{ cycle }}
+**Goal:** {{ goal }}
+**Date:** {{ now().isoformat() if now else 'N/A' }}
+**Aider Mode:** Non-interactive (--yes --message)
+{%- endmacro %}
+
+
+{# --------------------------------------------------------------------------
+   stop_signal — The STOP marker that tells Aider to halt after this phase.
+
+   Parameters:
+     phase: Current phase name.
+
+   Output: A clear instruction block telling Aider NOT to proceed to the
+           next phase, NOT to create merge commits, and to output results
+           to the specified artifact file.
+   -------------------------------------------------------------------------- #}
+{% macro stop_signal(phase) -%}
+## STOP SIGNAL — Phase Boundary
+
+After completing this phase, **STOP** and return control to loop-aider.
+
+* **Do NOT** proceed to the next phase.
+* **Do NOT** create merge commits or pull requests.
+* **Do NOT** modify files outside the `artifacts/` directory
+  (unless this phase explicitly allows source code modification).
+* **DO** output your result to the artifact file specified in the
+  "OUTPUT FORMAT" section above.
+
+When done, emit the stop-signal line so loop-aider's output parser can detect
+phase completion.
+{%- endmacro %}
+
+
+{# --------------------------------------------------------------------------
+   phase_contract — Declares what a phase MUST produce and MUST NOT do.
+
+   Parameters:
+     expected_outputs: List of strings describing required deliverables.
+     banned_behaviors: List of strings describing forbidden actions.
+
+   Output: A markdown section with two bullet lists.
+   -------------------------------------------------------------------------- #}
+{% macro phase_contract(expected_outputs, banned_behaviors) -%}
+## Phase Contract
+
+**Expected outputs:**
+{% for output in expected_outputs %}
+- {{ output }}
+{% endfor %}
+
+**Banned behaviors:**
+{% for behavior in banned_behaviors %}
+- {{ behavior }}
+{% endfor %}
+
+Violating the phase contract will cause the post-call audit (A4: Artifact
+Integrity Check) to flag this phase as FAILED, potentially triggering a
+re-route or retry.
+{%- endmacro %}
+
+
+{# --------------------------------------------------------------------------
+   artifact_reference — Inline an artifact file's contents for context.
+
+   Parameters:
+     artifact_path:  Filesystem path to the artifact.
+     artifact_name:  Human-readable name for display.
+
+   Output: A code-fenced block with the artifact's contents, or a note
+           that the artifact is not yet available.
+   -------------------------------------------------------------------------- #}
+{% macro artifact_reference(artifact_path, artifact_name) -%}
+### Artifact: {{ artifact_name }}
+**Path:** `{{ artifact_path }}`
+
+{% if read_file is defined -%}
+```
+{{ read_file(artifact_path) }}
+```
+{% else -%}
+*(Artifact not loaded — the rendering engine did not provide a `read_file` function.)*
+{%- endif %}
+{%- endmacro %}
+
+
+{# --------------------------------------------------------------------------
+   dangerous_ops_warning — The hard-ban list for ALL phases.
+
+   These commands must NEVER be executed under any circumstances.
+   Included in every phase template.
+   -------------------------------------------------------------------------- #}
+{% macro dangerous_ops_warning() -%}
+## CRITICAL SAFETY — Banned Commands
+
+The following operations are **ABSOLUTELY FORBIDDEN** in any phase.
+Violation will trigger a hard-block by PhaseGuard (G4-L0 Catastrophic).
+
+**DO NOT execute under any circumstances:**
+- `rm -rf /` or any destructive filesystem operation on root/home
+- `git push --force origin main` or `git push --force origin master`
+- `git push --force --delete` (force-delete remote branch)
+- `DROP TABLE` / `DROP DATABASE` / `TRUNCATE TABLE`
+- `chmod 777 /` or `chmod -R 777 /`
+- `mkfs.*` (format filesystem)
+- `dd if=... of=/dev/...` (direct block device write)
+- `eval` with untrusted input
+- `source` with remote/untrusted content
+- `curl ... | sh` / `wget ... | bash` (pipe-to-shell)
+- `systemctl disable sshd` (disable SSH)
+- `iptables -F` / `iptables -P INPUT ACCEPT` (disable firewall)
+- Any fork bomb pattern `:(){ :|:& };:`
+- Any attempt to modify `.aider/loop-aider/` internal files
+
+These are enforced by PhaseGuard G4 at ALL trust levels (L1/L2/L3/L1+).
+{%- endmacro %}
+
+
+{# --------------------------------------------------------------------------
+   now_iso — Helper to output current UTC timestamp in ISO 8601 format.
+
+   Returns: String like "2026-06-12T10:30:00Z"
+   -------------------------------------------------------------------------- #}
+{% macro now_iso() -%}
+{{ now().isoformat() if now else 'N/A' }}
+{%- endmacro %}

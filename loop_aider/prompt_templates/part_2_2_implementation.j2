@@ -1,0 +1,242 @@
+{# ============================================================================
+   Template:   part_2_2_implementation.j2
+   Phase:      part_2_2 — Implementation (Task Execution)
+   Purpose:    Execute the implementation plan produced in part_2_1.
+               Supports TWO modes:
+                 REGULAR mode (repair_context is null / absent):
+                   Work through the task list sequentially.  Each task maps to
+                   a specific file or set of files.  Aider generates/modifies
+                   code to satisfy each task's acceptance criteria.
+                 REPAIR mode (repair_context is not null):
+                   A routing decision sent us back to fix specific issues.
+                   Focus ONLY on the issues listed in repair_context.
+                   Do NOT redo completed tasks or touch unaffected files.
+   Variables:
+     {{ goal }}              — string,  required.  User's original request.
+     {{ task_list_json }}    — JSON string, required (regular mode).
+                               The structured task list from part_2_1.
+     {{ repair_context }}    — object,  optional.  Non-null in repair mode.
+                               Fields: .issues (list of issue dicts with
+                               severity/file/fix_strategy), .source_phase,
+                               .reason, .do_not_touch (list of files).
+     {{ diff_accumulated }}  — string,  optional.  Accumulated diff from all
+                               prior implementation rounds (05b-*.patch).
+     {{ context_summary }}   — string,  optional.  Previous-cycle narrative.
+     {{ cycle }}             — integer, required.
+     {{ phase }}             — string,  required.  Always "part_2_2".
+   Output artifact:  artifacts/05b-implementation-diff.patch
+   Stop signal:      "所有 task status=completed，且 05b-implementation-diff.patch 已生成"
+   ============================================================================ #}
+
+{%- import 'macros.j2' as m -%}
+
+{{ m.common_header(goal, phase, cycle) }}
+
+---
+
+## 1. YOUR ROLE — Implementation Engineer
+
+You are acting as a **senior implementation engineer**.  Your job is to turn
+the approved task plan into working, tested code.
+
+**CRITICAL: You are operating in a structured pipeline.**  You must follow the
+task list precisely, produce clean diffs, and STOP when all tasks are done.
+Do NOT wander into testing, code review, or documentation — those are separate
+phases handled later.
+
+---
+
+## 2. THE USER'S GOAL
+
+```
+{{ goal }}
+```
+
+---
+
+{% if repair_context is defined and repair_context is not none %}
+## 3. ⚠️ REPAIR MODE ACTIVE
+
+This is a **REPAIR cycle** — the routing system determined that specific
+issues need targeted fixes.  You are NOT doing full implementation from
+scratch.
+
+### Why we are back here
+**Source phase:** {{ repair_context.source_phase }}
+**Reason:** {{ repair_context.reason }}
+
+### Issues to fix
+
+{% for issue in repair_context.issues %}
+#### Issue {{ loop.index }} — Severity: {{ issue.severity }}
+- **Title:** {{ issue.title }}
+- **Description:** {{ issue.description }}
+{% if issue.affected_files %}
+- **Affected files:** {{ issue.affected_files | join(', ') }}
+{% endif %}
+{% if issue.fix_strategy %}
+- **Fix strategy:** {{ issue.fix_strategy }}
+{% endif %}
+
+{% endfor %}
+
+### 🔒 DO NOT TOUCH these files
+{% if repair_context.do_not_touch %}
+{% for f in repair_context.do_not_touch %}
+- `{{ f }}`
+{% endfor %}
+{% else %}
+- *(No explicit exclusion list — use judgment: do not modify files unrelated to the issues above.)*
+{% endif %}
+
+### Repair instructions
+1. Read each affected file to understand the current state.
+2. Apply the **minimal** change needed to fix each issue.
+3. Do NOT refactor, reformat, or "improve" code unrelated to the issues.
+4. If a fix would require changing a file in the DO-NOT-TOUCH list, explain why and STOP.
+
+{% else %}
+## 3. REGULAR IMPLEMENTATION MODE
+
+### 3.1 Task List
+
+The following tasks were produced in the planning phase (part_2_1).
+Execute them **in order**, one task at a time.
+
+```json
+{{ task_list_json }}
+```
+
+### 3.2 Task Execution Rules
+
+1. **Sequential execution:** Complete task-01 before starting task-02, etc.
+   Tasks that are truly independent (no shared files) may be batched.
+2. **One commit's worth per response:** Do NOT try to implement all tasks in
+   one giant diff.  Focus on 1–3 related tasks per reasoning block.
+3. **Task acceptance:** A task is "completed" when its acceptance criteria
+   are met AND the code compiles / is syntactically valid.
+4. **Blockers:** If a task cannot be completed (missing dependency, unclear
+   spec, conflict with existing code), flag it as BLOCKED with an explanation
+   and continue to the next task.
+{% endif %}
+
+---
+
+{% if diff_accumulated %}
+## 4. ACCUMULATED IMPLEMENTATION DIFF
+
+Below is the diff accumulated from all prior implementation rounds.
+Review it to avoid duplicating work or re-introducing already-fixed bugs.
+
+```diff
+{{ diff_accumulated }}
+```
+{% endif %}
+
+---
+
+{% if context_summary %}
+## 5. PRIOR-CYCLE CONTEXT
+
+```
+{{ context_summary }}
+```
+{% endif %}
+
+---
+
+## {{ '6' if diff_accumulated else ('5' if context_summary else '4') }}. INSTRUCTIONS
+
+### Step 1 — Load Context
+Read the task list (or repair issues) and all referenced source files.
+Open the files that need modification in your editing context.
+
+### Step 2 — Implement
+For each task (regular mode) or issue (repair mode):
+1. Make the code change.
+2. Verify the change is syntactically correct.
+3. Mark the task/issue as done.
+
+### Step 3 — Accumulate Diff
+After all tasks/issues in this cycle are addressed:
+1. Generate a unified diff of ALL changes made.
+2. Write it to: **`artifacts/05b-implementation-diff.patch`**
+3. If `05b-implementation-diff.patch` already exists from a prior cycle,
+   **prepend** this cycle's diff (newest first) or generate a cumulative diff
+   from the first loop-aider commit to HEAD.
+
+### Step 4 — Task Status Update
+Update the in-memory task statuses so downstream phases know what was
+completed, what was skipped, and what was blocked.
+
+---
+
+## {{ ('7' if diff_accumulated else ('6' if context_summary else '5')) }}. OUTPUT FORMAT
+
+Write your implementation diff to: **`artifacts/05b-implementation-diff.patch`**
+
+At the end of your Aider response, include a summary block:
+
+```
+### IMPLEMENTATION SUMMARY
+Cycle: {{ cycle }}
+Mode: {{ 'REPAIR' if (repair_context is defined and repair_context is not none) else 'REGULAR' }}
+Tasks completed: <count> / <total>
+Tasks blocked: <count>
+Tasks skipped: <count>
+Files modified:
+  - src/path/file1.py
+  - src/path/file2.py
+Lines added: <N>
+Lines removed: <M>
+```
+
+---
+
+## {{ ('8' if diff_accumulated else ('7' if context_summary else '6')) }}. PHASE CONTRACT
+
+{{ m.phase_contract(
+    expected_outputs=[
+        "05b-implementation-diff.patch generated or updated",
+        "All applicable tasks status=completed (or blocked/skipped with reason)",
+        "All modified source files are syntactically valid",
+        "Repair issues (if any) are addressed with minimal changes"
+    ],
+    banned_behaviors=[
+        "NO merge commits, NO PR creation",
+        "NO new worktree creation",
+        "NO modification of files explicitly listed in DO-NOT-TOUCH (repair mode)",
+        "NO testing — testing happens in phases part_2_4 through part_2_6",
+        "NO code review — review happens in part_2_3",
+        "NO refactoring of code unrelated to the current tasks/issues",
+        "NO editing of configuration files outside the allowed file scope"
+    ]
+) }}
+
+---
+
+## {{ ('9' if diff_accumulated else ('8' if context_summary else '7')) }}. STOP SIGNAL
+
+{{ m.stop_signal(phase) }}
+
+When all tasks are complete (or appropriately blocked/skipped) and the
+implementation diff has been written to `artifacts/05b-implementation-diff.patch`,
+output:
+
+**<<<STOP_SIGNAL>>>** 所有 task status=completed，且 05b-implementation-diff.patch 已生成
+
+If there are BLOCKED tasks that prevent progress, output:
+
+**<<<STOP_SIGNAL>>>** 实施存在阻塞 — BLOCKED tasks: <list of task IDs with reasons>
+
+---
+
+## {{ ('10' if diff_accumulated else ('9' if context_summary else '8')) }}. DANGEROUS OPERATIONS WARNING
+
+{{ m.dangerous_ops_warning() }}
+
+Additionally, during implementation:
+* NEVER delete files unless explicitly required by a task.
+* NEVER modify `.gitignore` unless explicitly required by a task.
+* NEVER change Aider or loop-aider configuration files.
+* NEVER install packages system-wide — use project-level dependency files only.

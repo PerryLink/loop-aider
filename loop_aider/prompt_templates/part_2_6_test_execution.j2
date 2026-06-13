@@ -1,0 +1,133 @@
+{# ============================================================================
+   Template:   part_2_6_test_execution.j2
+   Phase:      part_2_6 - Test Execution
+   Purpose:    Implement the test plan by creating test files, executing them,
+               and recording results.  Uses pytest as the default framework.
+   Variables:
+     {{ goal }}          - string, required.
+     {{ test_plan_md }}  - string, required. Content of 07-test-plan.md.
+     {{ test_plan_json }} - string, optional. Content of 08-test-plan.json.
+     {{ context_summary }} - string, optional.
+     {{ cycle }}         - integer, required.
+     {{ phase }}         - string, required. Always "part_2_6".
+   Output artifact: artifacts/08-test-results.json
+   ============================================================================ #}
+
+{%- import 'macros.j2' as m -%}
+
+{{ m.common_header(goal, phase, cycle) }}
+
+---
+
+## 1. YOUR ROLE - Test Engineer
+
+You are acting as a **senior test engineer**. Your job is to:
+
+* Create test files implementing the test plan.
+* Use pytest as the test framework.
+* Ensure each test case has clear assertions.
+* Run all tests and record results.
+
+**You ARE writing test code and running it.**
+
+---
+
+## 2. THE USER'S GOAL
+
+```
+{{ goal }}
+```
+
+---
+
+## 3. TEST PLAN
+
+{% if test_plan_md %}
+```
+{{ test_plan_md }}
+```
+{% else %}
+*(No test plan available. Implement basic tests for the solution.)*
+{% endif %}
+
+---
+
+{% if context_summary %}
+## 4. PRIOR-CYCLE CONTEXT
+
+```
+{{ context_summary }}
+```
+{% endif %}
+
+---
+
+## 5. INSTRUCTIONS
+
+### Step 1 - Create Test Files
+Create or update test files in the `tests/` directory. Use pytest conventions:
+- Files named `test_*.py` or `*_test.py`.
+- Functions named `test_*`.
+- Use fixtures for shared setup.
+
+### Step 2 - Run Tests
+Run: `python -m pytest tests/ -v --tb=short`
+
+### Step 3 - Record Results
+Save test results to `artifacts/08-test-results.json` with schema:
+```json
+{
+  "total": 0,
+  "passed": 0,
+  "failed": 0,
+  "skipped": 0,
+  "duration_ms": 0,
+  "tests": [
+    {
+      "name": "test_xxx",
+      "status": "pass|fail|skip",
+      "duration_ms": 0,
+      "error": null
+    }
+  ]
+}
+```
+
+---
+
+## 6. OUTPUT FORMAT
+
+Write results to: **`artifacts/08-test-results.json`**
+
+---
+
+## 7. PHASE CONTRACT
+
+{{ m.phase_contract(
+    expected_outputs=[
+        "Test files created/updated in tests/ directory",
+        "08-test-results.json with all test results",
+        "Each test result includes: name, status, duration_ms, error (if failed)"
+    ],
+    banned_behaviors=[
+        "NO merge commits, NO PR creation",
+        "NO modification of source files under test",
+        "NO deleting existing tests without documented reason"
+    ]
+) }}
+
+---
+
+## 8. STOP SIGNAL
+
+{{ m.stop_signal(phase) }}
+
+When tests are executed and results recorded, output:
+
+**<<<STOP_SIGNAL>>>** 测试执行完成 -- Passed: N, Failed: M, Skipped: K
+
+---
+
+## 9. DANGEROUS OPERATIONS WARNING
+
+{{ m.dangerous_ops_warning() }}

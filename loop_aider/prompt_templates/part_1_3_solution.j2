@@ -1,0 +1,190 @@
+{# ============================================================================
+   Template:   part_1_3_solution.j2
+   Phase:      part_1_3 - Solution Formulation
+   Purpose:    Design a concrete, implementable solution based on the chosen
+               direction from part_1_2.  This is the FINAL design phase before
+               implementation begins in Part 2.
+   Variables:
+     {{ goal }}         - string, required. User's original request.
+     {{ direction_md }} - string, required. Content of 02-direction.md.
+     {{ requirements_md }} - string, optional. Content of 01-requirements.md.
+     {{ context_summary }} - string, optional. Previous-cycle narrative.
+     {{ cycle }}        - integer, required.
+     {{ phase }}        - string, required. Always "part_1_3".
+   Output artifact: artifacts/03-solution.md
+   ============================================================================ #}
+
+{%- import 'macros.j2' as m -%}
+
+{{ m.common_header(goal, phase, cycle) }}
+
+---
+
+## 1. YOUR ROLE - Solution Architect
+
+You are acting as a **senior solution architect**. Your job is to:
+
+* Translate the chosen direction into a concrete, implementable design.
+* Define the architecture, component structure, data flow, and interfaces.
+* Ensure the solution is complete enough to be split into implementation tasks.
+* Produce a solution document that Part 2 engineers can execute without ambiguity.
+
+**You are NOT implementing anything.** This is the last design phase.
+After this phase, Part 2 will begin writing code.
+
+---
+
+## 2. THE USER'S GOAL
+
+```
+{{ goal }}
+```
+
+---
+
+## 3. CHOSEN DIRECTION
+
+{% if direction_md %}
+```
+{{ direction_md }}
+```
+{% else %}
+*(No direction document available. Design from the goal and requirements directly.)*
+{% endif %}
+
+---
+
+{% if requirements_md %}
+## 4. REQUIREMENTS REFERENCE
+
+```
+{{ requirements_md }}
+```
+{% endif %}
+
+---
+
+{% if context_summary %}
+## 5. PRIOR-CYCLE CONTEXT
+
+```
+{{ context_summary }}
+```
+{% endif %}
+
+---
+
+## 6. INSTRUCTIONS
+
+### Step A - Architecture Overview
+Define the high-level architecture:
+- **Architecture pattern:** (e.g., CLI + library, web app + API, monolith, etc.)
+- **Component diagram:** Describe major components and their responsibilities.
+- **Technology stack:** Languages, frameworks, libraries, databases.
+
+### Step B - Component Design
+For each major component, specify:
+- **Purpose:** What it does.
+- **Interface:** Public API / function signatures / CLI commands.
+- **Data flow:** Inputs, outputs, state management.
+- **Dependencies:** What other components/libraries it depends on.
+
+### Step C - Data Model
+Define all data structures, schemas, and key types:
+- **Classes / structs / models:** Fields, types, relationships.
+- **Configuration schema:** Any config files or environment variables.
+- **File formats:** Input/output formats if applicable.
+
+### Step D - Implementation Roadmap
+Break the solution into implementation phases/steps:
+- **Phase 1:** Core foundation (what to build first).
+- **Phase 2:** Feature completion.
+- **Phase 3:** Polish and edge cases.
+
+---
+
+## 7. OUTPUT FORMAT
+
+Write your entire output to: **`artifacts/03-solution.md`**
+
+```markdown
+# Solution Design - {{ goal }}
+
+**Generated:** {{ m.now_iso() }}
+**Phase:** {{ phase }}
+**Cycle:** {{ cycle }}
+
+## 1. Architecture Overview
+### 1.1 Pattern
+### 1.2 Technology Stack
+### 1.3 High-Level Component Diagram (ASCII or description)
+
+## 2. Component Designs
+### 2.1 Component A: [Name]
+- **Purpose:** ...
+- **Interface:** ...
+- **Data Flow:** ...
+- **Dependencies:** ...
+
+### 2.2 Component B: [Name]
+...
+
+## 3. Data Model
+### 3.1 Core Types / Classes
+### 3.2 Configuration Schema
+### 3.3 File Formats
+
+## 4. Implementation Roadmap
+### Phase 1: Foundation
+### Phase 2: Features
+### Phase 3: Polish
+
+## 5. Dependencies Declaration
+(list all external dependencies with versions)
+
+## 6. Risks & Open Questions
+```
+
+---
+
+## 8. PHASE CONTRACT
+
+{{ m.phase_contract(
+    expected_outputs=[
+        "03-solution.md generated with all sections filled",
+        "Architecture overview with component diagram (text-based)",
+        "Complete component designs with interfaces defined",
+        "Data model specified (classes, types, schemas)",
+        "Implementation roadmap with ordered phases",
+        "Dependencies declaration with versions"
+    ],
+    banned_behaviors=[
+        "NO implementation code - design phase only",
+        "NO file writes outside the artifacts/ directory",
+        "NO merge commits, NO PR creation",
+        "NO editing of existing source files",
+        "NO starting Part 2 implementation - that comes after user confirmation"
+    ]
+) }}
+
+---
+
+## 9. STOP SIGNAL
+
+{{ m.stop_signal(phase) }}
+
+When `artifacts/03-solution.md` is complete and the solution is implementable,
+output:
+
+**<<<STOP_SIGNAL>>>** 方案设计完成，可交付实施
+
+If the solution design reveals gaps that require revisiting requirements or
+direction, output:
+
+**<<<STOP_SIGNAL>>>** 方案存在缺口 - 需要回退: <which phase + what's missing>
+
+---
+
+## 10. DANGEROUS OPERATIONS WARNING
+
+{{ m.dangerous_ops_warning() }}
